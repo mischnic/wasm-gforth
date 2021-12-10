@@ -1,0 +1,40 @@
+http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Memory-Blocks.html#Memory-Blocks
+http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/String-Formats.html#String-Formats
+
+
+1. loop to read in bytes
+2. "parsing state machine"
+
+how much of the type data is actually needed?
+
+heap vectors for code sections, indexed by function
+    http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Heap-Allocation.html#Heap-Allocation
+
+wasm stack = data stack
+
+
+(params = last n values on stack before call) + locals
+    can't access it on data stack in middle of the function
+    how to do indexed access?
+    where to store?
+        they could be copied to return stack?
+    use locals stack including indexed access!!! http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Locals-implementation.html#Locals-implementation
+        move them from data stack into locals stack
+        DOES THE LOCAL STACK CHANGE WHEN INVOKING FORTH WORDS NOT USING LOCALS?
+
+        CAN CREATE BE USED WITH A WORD AT RUNTIME?
+
+
+
+run loop
+    take start function
+    start interpreting
+    or compile into function
+        USE http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Anonymous-Definitions.html#Anonymous-Definitions
+        TO GET XT THAT CAN BE STORED IN AN ARRAY?
+
+        http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Supplying-names.html#Supplying-names
+        http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/User_002ddefined-Defining-Words.html#User_002ddefined-Defining-Words
+        http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Interpret_002fCompile-states.html#Interpret_002fCompile-states
+        http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Interpretation-and-Compilation-Semantics.html#Interpretation-and-Compilation-Semantics
+        http://www.complang.tuwien.ac.at/forth/gforth/Docs-html/Literals.html#Literals

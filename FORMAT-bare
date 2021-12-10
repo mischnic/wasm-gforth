@@ -1,0 +1,46 @@
+\bare
+00 61 73 6d \ magic
+01 00 00 00 \ version
+01 \section id 1 = type
+    08 \u32 byte size
+    02 \2 functions
+    60
+        01 7f \ [i32]
+        00 \ []
+    60
+        00 \ []
+        00 \ []
+02  \section id 2 = imports
+    1b \27 bytes
+    01 \1 import
+        0d \13 utf8 bytes for name
+            77 61 73 69 5f 75 6e 73 74 61 62 6c 65 \ "wasi_unstable"
+        09 \9 bytes for name
+            70 72 6f 63 5f 65 78 69 74 \ "proc_exit"
+        00 \importdesc: function
+            00 \improtdesc: id
+03 \ function sections
+    02 \2 bytes
+    01 \1 function
+        01 \id 1
+05 \memory
+    03 \3 bytes
+    01 \1 memory
+        00 0a \memory with min 0a bytes
+07 \exports
+    0a \10 bytes
+    01 \1 export
+    06 \name: 6 bytes
+        6d 65 6d 6f 72 79 \"memory"
+    02 00 \memory id 0
+08
+    01 \1 byte
+    01 \function 1
+0a \code
+    08 \8 bytes
+    01 \1 function
+        06 \6 bytes codesize
+        00 \0 locals
+            41 07 \i32.const 7
+            10 00 \call 0
+            0b \return

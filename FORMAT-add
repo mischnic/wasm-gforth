@@ -1,0 +1,31 @@
+\add.wasm
+00 61 73 6d
+01 00 00 00
+01 0e
+    03 60 01 7f 00 60 02 7f 7f 01 7f 60 00 00
+02 1b 
+    01 0d 77 61 73 69 5f 75 6e 73 74 61 62 6c
+    65 09 70 72 6f 63 5f 65 78 69 74 00 00
+03 03
+    02 01 02
+05 03
+    01 00 0a
+07 0a
+    01 06 6d 65 6d 6f 72 79 02 00
+08 01
+    02
+0a 14
+    02
+    07 \ 7 bytes
+        00 \locals
+        20 01 \local.get 1
+        20 00 \local.get 0
+        6a \i32.add
+        0b \return
+    0a \10 bytes function
+        00 \locals
+        41 01 \i32.const 1
+        41 04 \i32.const 4
+        10 01 \call 1
+        10 00 \call 0
+        0b \ return
