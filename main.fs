@@ -148,35 +148,6 @@ CREATE SECTION-HANDLERS
     drop
 ;
 
-s" test/bare.wasm" open-input
-parse-wasm
-close-input
-
-\ cr cr
-\ FN-INFOS @
-\ dup @ .
-\ dup 1 cells + @ .
-\ dup 2 cells + @ .
-\ drop
-
-\ cr cr
-\ FN-INFOS cell+ @
-\ dup @ .
-\ dup 1 cells + @ .
-\ dup 2 cells + @ .
-\ dup 3 cells + @ .
-\ drop
-
-\ cr
-\ TYPES 0 cells + 2@ . .
-\ TYPES 2 cells + 2@ . .
-
-\ cr
-\ ." memory size " MEMORY-SIZE . cr
-\ ." start " START-FN .
-
-\ bye
-
 \ ------------------ Compiler
 
 CREATE FUNCTIONS 32 ALLOT
@@ -290,6 +261,43 @@ CREATE FUNCTIONS 32 ALLOT
 \ see temporary cr
 \ cr
 \ 3 11 temporary .s  \ (3 + 11) + (3 + 11)
+\ bye
+
+: get-arg ( -- addr u )
+    next-arg
+    dup 0 = IF 
+        ." You need to specify a wasm file to run"
+        1 (bye)
+    ENDIF
+    ;
+
+get-arg open-input
+parse-wasm
+close-input
+
+\ cr cr
+\ FN-INFOS @
+\ dup @ .
+\ dup 1 cells + @ .
+\ dup 2 cells + @ .
+\ drop
+
+\ cr cr
+\ FN-INFOS cell+ @
+\ dup @ .
+\ dup 1 cells + @ .
+\ dup 2 cells + @ .
+\ dup 3 cells + @ .
+\ drop
+
+\ cr
+\ TYPES 0 cells + 2@ . .
+\ TYPES 2 cells + 2@ . .
+
+\ cr
+\ ." memory size " MEMORY-SIZE . cr
+\ ." start " START-FN .
+
 \ bye
 
 
