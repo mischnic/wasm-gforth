@@ -22,7 +22,14 @@ CREATE CODE-MAIN
     $10 , $1 , \ call 1=add, 2=sub
     \ $6a , \ i32.add
     $0b , \ return
-CREATE CODES CODE-ADD , CODE-SUB , CODE-MAIN ,
+CREATE CODE-MAINEXIT
+    0 ( nparams ) , 0 ( nlocals ) ,
+    5 ( code bytes ) ,
+    $41 , $d , \ i32.const 13
+    $10 , $0 , \ call 0
+    $0b , \ return
+
+CREATE CODES CODE-ADD , CODE-SUB , CODE-MAIN , CODE-MAINEXIT ,
 
 \ ------------------ Compiler
 
@@ -66,6 +73,12 @@ CREATE FUNCTIONS 32 ALLOT
             cell + dup @
             compile-store-local POSTPONE !
         ENDOF
+        \ $36 OF \ i32.store : addr v --
+            \ l!
+        \ ENDOF
+        \ $28 OF \ i32.load : addr -- v
+            \ ul@
+        \ ENDOF
         $0b OF \ return
             POSTPONE EXIT
         ENDOF
@@ -134,6 +147,10 @@ CREATE FUNCTIONS 32 ALLOT
 \ bye
 
 
+:noname  \ wasi_unstable.proc_exit : n --
+    (bye)
+; 0 CELLS FUNCTIONS + !
+
 \ TODO how to loop over all functions and create these definitions
 :noname [ 
     CODES 0 cells + @
@@ -147,9 +164,12 @@ CREATE FUNCTIONS 32 ALLOT
     CODES 2 cells + @
     compile-function
 ] ; 3 CELLS FUNCTIONS + !
-
+:noname [
+    CODES 3 cells + @
+    compile-function
+] ; 4 CELLS FUNCTIONS + !
 
 FUNCTIONS 3 CELLS + @ EXECUTE
-.s
+.s cr
 
 bye
