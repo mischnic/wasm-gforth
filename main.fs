@@ -32,6 +32,10 @@ CREATE FUNCTIONS 32 ALLOT
     POSTPONE [ POSTPONE @local# CELLS , \ not sure why ] causes an error here, works anyway
  ;
 
+: compile-store-local ( n -- )
+    POSTPONE [ POSTPONE laddr# CELLS , \ not sure why ] causes an error here, works anyway
+ ;
+
 : compile-instruction ( ptrNext1 -- ptrNext2 )
     dup @
     CASE
@@ -49,9 +53,18 @@ CREATE FUNCTIONS 32 ALLOT
             cell + dup @ cells FUNCTIONS +
             POSTPONE LITERAL POSTPONE @ POSTPONE EXECUTE
         ENDOF
-        $20 OF \ local.get [lit] : -- v;
+        $20 OF \ local.get [lit] : -- v
             cell + dup @
             compile-load-local
+        ENDOF
+        $21 OF \ local.set [lit] : v --
+            cell + dup @
+            compile-store-local POSTPONE !
+        ENDOF
+        $22 OF \ local.tee [lit] : v --
+            POSTPONE dup
+            cell + dup @
+            compile-store-local POSTPONE !
         ENDOF
         $0b OF \ return
             POSTPONE EXIT
@@ -103,16 +116,20 @@ CREATE FUNCTIONS 32 ALLOT
 
 
 \ CREATE CODE-temporary
-\     2 ( nparams ) , 0 ( nlocals ) ,
-\     6 ( code bytes ) ,
+\     2 ( nparams ) , 1 ( nlocals ) ,
+\     11 ( code bytes ) ,
 \     $20 , $01 , \ local.get 1
 \     $20 , $00 , \ local.get 0
+\     $6a , \ i32.add
+\     $22 , $02 , \ local.tee 2
+\     $20 , $02 , \ local.get 2
 \     $6a , \ i32.add
 \     $0b , \ return
 \ : temporary [
 \     CODE-temporary  compile-function
 \ ] ;
 \ see temporary cr
+\ cr
 \ 3 11 temporary .s
 \ bye
 
