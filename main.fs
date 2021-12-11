@@ -112,7 +112,9 @@ CREATE IMPORT-READ-BUFFER 128 ALLOT
     0 ?DO
         next-byte 1- \ bytes of code
         next-byte \ how many locals
-        swap dup 2 + cells allocate throw
+        dup 2 * skip-bytes \ skip descriptor TODO there might be more possibilites
+        swap over 2 * -
+        dup 2 + cells allocate throw
         dup FN-INFOS i index-to-fid cells + !
         rot
         over !
