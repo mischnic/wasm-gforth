@@ -1,4 +1,4 @@
-: wasi_unstable-proc_exit
+: wasi_unstable.proc_exit
     (bye) ;
 
 \ ------------------ Parser
@@ -25,14 +25,15 @@
 
 CREATE TYPES 32 2 * CELLS ALLOT \ tid*2 -> [nreturn nparams]
 CREATE FN-TYPES 32 CELLS ALLOT \ fid -> tid
-CREATE FN-INFOS 32 CELLS ALLOT \ fid -> pointer to [nbytes nlocals ...code] OR [0 (ptr to host function)]
-0 VALUE N-IMPORTED
+CREATE FN-INFOS 32 CELLS ALLOT \ fid -> pointer to [nlocals nbytes ...code] OR [0 0 (ptr to host function)]
+0 VALUE COUNT-FN
+0 VALUE COUNT-FN-IMPORTED
 0 Value MEMORY-SIZE
 0 Value MEMORY-PTR
 -1 VALUE START-FN
 
 : index-to-fid 
-    N-IMPORTED + ;
+    COUNT-FN-IMPORTED + ;
 
 : parse-section-noop
     next-byte skip-bytes
@@ -55,6 +56,7 @@ CREATE IMPORT-READ-BUFFER 128 ALLOT
 : parse-section-imports
     1 skip-bytes
     next-byte \ number of imports
+    dup TO COUNT-FN-IMPORTED
     0 ?DO
         next-byte dup 
         IMPORT-READ-BUFFER swap read-bytes-packed
@@ -68,10 +70,11 @@ CREATE IMPORT-READ-BUFFER 128 ALLOT
         compare invert
         and
         IF
-            2 CELLS ALLOCATE throw
+            3 CELLS ALLOCATE throw
             dup FN-INFOS i cells + !
             0 over !
-            ['] wasi_unstable-proc_exit swap cell+ !
+            0 over cell+ !
+            ['] wasi_unstable.proc_exit swap 2 cells + !
         ENDIF
         2 skip-bytes \ TODO other import types
     LOOP
@@ -98,23 +101,24 @@ CREATE IMPORT-READ-BUFFER 128 ALLOT
     next-byte
     0 ?DO
         next-byte
-        FN-TYPES i cells + !
+        FN-TYPES i index-to-fid cells + !
     LOOP
     ;
 
 : parse-section-code
     1 skip-bytes
-    next-byte
+    next-byte \ number of functions
+    dup COUNT-FN-IMPORTED + TO COUNT-FN
     0 ?DO
-        next-byte 1- \ 1 + bytes of code
-        dup
+        next-byte 1- \ bytes of code
         next-byte \ how many locals
         swap dup 2 + cells allocate throw
         dup FN-INFOS i index-to-fid cells + !
-        -rot ( nbytes+1 addr nlocals nbytes+1)
-        third ! \ store bytes
-        over 1 cells + ! \ store locals
-        2 cells + swap read-bytes
+        rot
+        over !
+        cell+
+        2dup !
+        cell+ swap read-bytes
     LOOP
     ;
 
@@ -153,10 +157,15 @@ close-input
 \ dup @ .
 \ dup 1 cells + @ .
 \ dup 2 cells + @ .
+\ drop
+
+\ cr cr
+\ FN-INFOS cell+ @
+\ dup @ .
+\ dup 1 cells + @ .
+\ dup 2 cells + @ .
 \ dup 3 cells + @ .
-\ dup 4 cells + @ .
-\ dup 5 cells + @ .
-\ dup 6 cells + @ .
+\ drop
 
 \ cr
 \ TYPES 0 cells + 2@ . .
@@ -166,36 +175,7 @@ close-input
 \ ." memory size " MEMORY-SIZE . cr
 \ ." start " START-FN .
 
-CREATE CODE-ADD
-    2 ( nparams ) , 0 ( nlocals ) ,
-    6 ( code bytes ) ,
-    $20 , $01 , \ local.get 1
-    $20 , $00 , \ local.get 0
-    $6a , \ i32.add
-    $0b , \ return
-CREATE CODE-SUB
-    2 ( nparams ) , 0 ( nlocals ) ,
-    6 ( code bytes ) ,
-    $20 , $01 , \ local.get 1
-    $20 , $00 , \ local.get 0
-    $6b , \ i32.sub
-    $0b , \ return
-CREATE CODE-MAIN
-    0 ( nparams ) , 0 ( nlocals ) ,
-    7 ( code bytes ) ,
-    $41 , $8 , \ i32.const 8
-    $41 , $9 , \ i32.const 9
-    $10 , $1 , \ call 1=add, 2=sub
-    \ $6a , \ i32.add
-    $0b , \ return
-CREATE CODE-MAINEXIT
-    0 ( nparams ) , 0 ( nlocals ) ,
-    5 ( code bytes ) ,
-    $41 , $d , \ i32.const 13
-    $10 , $0 , \ call 0
-    $0b , \ return
-
-CREATE CODES CODE-ADD , CODE-SUB , CODE-MAIN , CODE-MAINEXIT ,
+\ bye
 
 \ ------------------ Compiler
 
@@ -281,22 +261,22 @@ CREATE FUNCTIONS 32 ALLOT
     LOOP
     ;
 
-: compile-function  ( arr -- )
+: compile-function  ( nparams arr -- )
     dup @
-    swap cell + dup @
     rot swap
+    ( arr nparams nlocals )
     2dup compile-function-prelude
-    rot cell +
+    rot cell+
     compile-instructions
     compile-function-postlude 
-    ;
+    ; IMMEDIATE
 
 \ ------------------ Initialization
 
 
 \ CREATE CODE-temporary
-\     2 ( nparams ) , 1 ( nlocals ) ,
-\     11 ( code bytes ) ,
+\     1 , \ 1 local
+\     11 , \ 11 bytes code
 \     $20 , $01 , \ local.get 1
 \     $20 , $00 , \ local.get 0
 \     $6a , \ i32.add
@@ -305,37 +285,68 @@ CREATE FUNCTIONS 32 ALLOT
 \     $6a , \ i32.add
 \     $0b , \ return
 \ : temporary [
-\     CODE-temporary  compile-function
+\     2 CODE-temporary compile-function
 \ ] ;
 \ see temporary cr
 \ cr
-\ 3 11 temporary .s
+\ 3 11 temporary .s  \ (3 + 11) + (3 + 11)
 \ bye
 
 
-:noname  \ wasi_unstable-proc_exit : n --
-    (bye)
-; 0 CELLS FUNCTIONS + !
+: create-function ( nparams arr -- xt )
+    \ use return stack to smuggle data around the stack elements pushed by :noname
+    >r >r
+    :noname r> r> POSTPONE compile-function POSTPONE ;
+    ;
 
-\ TODO how to loop over all functions and create these definitions
-:noname [ 
-    CODES 0 cells + @
-    compile-function
-] ; 1 CELLS FUNCTIONS + !
-:noname [
-    CODES 1 cells + @
-    compile-function
-] ; 2 CELLS FUNCTIONS + !
-:noname [
-    CODES 2 cells + @
-    compile-function
-] ; 3 CELLS FUNCTIONS + !
-:noname [
-    CODES 3 cells + @
-    compile-function
-] ; 4 CELLS FUNCTIONS + !
+: compile-functions
+    \ 4 1 ?DO
+    COUNT-FN 0 ?DO
+        FN-INFOS i CELLS + @ \ pointer to [nlocals nbytes ...code] OR [0 0 (ptr to host function)]
+        dup @ \ nlocals
+        over cell+ @ \ nbytes
+        + 0 = IF
+            \ host function
+            2 cells + @
+            \ i . dup xt-see cr
+            FUNCTIONS i CELLS + !
+        ELSE
+            \ compile
+            FN-TYPES i CELLS + @ ( arr tid )
+            2 * CELLS cell+ TYPES + @ ( arr nparams )
+            swap
+            create-function
+            \ i . dup xt-see cr
+            FUNCTIONS i CELLS + !
+        ENDIF
+    LOOP
+;
 
-FUNCTIONS 3 CELLS + @ EXECUTE
-.s cr
+compile-functions
+
+\ :noname [ 
+\     CODES 0 cells + @
+\     compile-function
+\ ] ; 1 CELLS FUNCTIONS + !
+\ :noname [
+\     CODES 1 cells + @
+\     compile-function
+\ ] ; 2 CELLS FUNCTIONS + !
+\ :noname [
+\     CODES 2 cells + @
+\     compile-function
+\ ] ; 3 CELLS FUNCTIONS + !
+\ :noname [
+\     CODES 3 cells + @
+\     compile-function
+\ ] ; 4 CELLS FUNCTIONS + !
+
+
+FUNCTIONS START-FN CELLS + @ EXECUTE
+\ FUNCTIONS 0 CELLS + @ EXECUTE
+
+\ FUNCTIONS 0 CELLS + @ xt-see
+\ FUNCTIONS 1 CELLS + @ xt-see
+\ .s cr
 
 bye
