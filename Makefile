@@ -5,7 +5,7 @@ all: tests
 clean: 
 	rm test/*.wasm
 
-tests: test/add.wasm test/bare.wasm test/locals.wasm test/hello_world.wasm test/hello_world_rs.wasm
+tests: test/add.wasm test/bare.wasm test/locals.wasm test/hello_world.wasm test/hello_world_rs.wasm test/if.wasm test/if-nested.wasm
 
 %.wasm: %.wat
 	wat2wasm -o $@ $<

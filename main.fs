@@ -170,10 +170,13 @@ CREATE FUNCTIONS 32 ALLOT
             POSTPONE LITERAL
         ENDOF
         $6a OF \ i32.add : a b -- c
-            POSTPONE + \ TODO truncate
+            POSTPONE + \ TODO POSTPONE $ffffffff POSTPONE AND
         ENDOF
         $6b OF \ i32.sub : a b -- c
-            POSTPONE - \ TODO truncate
+            POSTPONE - \ TODO POSTPONE $ffffffff POSTPONE AND
+        ENDOF
+        $46 OF \ i32.eq : a b -- c
+            POSTPONE = POSTPONE 1 POSTPONE AND
         ENDOF
         $10 OF \ call [idx] : --
             cell + dup @ cells FUNCTIONS +
@@ -199,6 +202,7 @@ CREATE FUNCTIONS 32 ALLOT
             \ ul@
         \ ENDOF
         $0b OF \ return
+            \ TODO might need unloop/done
             POSTPONE EXIT
         ENDOF
         ( n ) ." unhandled " . ( n )
