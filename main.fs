@@ -26,7 +26,7 @@
 
 CREATE TYPES 32 2 * CELLS ALLOT \ tid*2 -> [nreturn nparams]
 CREATE FN-TYPES 32 CELLS ALLOT \ fid -> tid
-CREATE FN-INFOS 32 CELLS ALLOT \ fid -> pointer to [nlocals nbytes ...code] OR [0 0 (ptr to host function)]
+CREATE FN-INFOS 32 CELLS ALLOT \ fid -> pointer to [nlocals nbytes ...packed-code] OR [0 0 (ptr to host function)]
 0 VALUE COUNT-FN
 0 VALUE COUNT-FN-IMPORTED
 0 Value MEMORY-SIZE
@@ -139,13 +139,13 @@ CREATE IMPORT-READ-BUFFER 128 ALLOT
         next-byte \ how many locals
         dup 2 * skip-bytes \ skip descriptor TODO there might be more possibilites
         swap over 2 * -
-        dup 2 + cells allocate throw
+        dup chars 2 cells + allocate throw
         dup FN-INFOS i index-to-fid cells + !
         rot
         over !
         cell+
         2dup !
-        cell+ swap read-bytes
+        cell+ swap read-bytes-packed
     LOOP
     ;
 
@@ -200,13 +200,13 @@ CREATE FUNCTIONS 32 ALLOT
     POSTPONE [ POSTPONE laddr# CELLS , \ not sure why ] causes an error here, works anyway
  ;
 
-: read-next-cell 
-    cell+ dup @
+: read-next-byte ( c-addr -- c-addr n )
+    char+ dup c@
 ;
 
 : compile-apply-memarg ( ptr -- ptr )
-    cell+ \ ignore alignment
-    read-next-cell \ offset
+    char+ \ ignore alignment
+    read-next-byte \ offset
     POSTPONE LITERAL POSTPONE +
     POSTPONE MEMORY-PTR POSTPONE +
     ;
@@ -216,13 +216,16 @@ CREATE FUNCTIONS 32 ALLOT
     ;
 
 : compile-instruction ( ptrNext1 -- ptrNext2 )
-    dup @
+    dup c@
     CASE
         $1A OF \ drop : v --
             POSTPONE drop
         ENDOF
         $41 OF \ i32.const [lit] : -- lit
-            read-next-cell
+            read-next-byte
+            \ .s cr
+            \ read-leb128
+            \ .s cr
             POSTPONE LITERAL
         ENDOF
         $6a OF \ i32.add : a b -- c
@@ -235,20 +238,20 @@ CREATE FUNCTIONS 32 ALLOT
             POSTPONE = POSTPONE 1 POSTPONE AND
         ENDOF
         $10 OF \ call [idx] : --
-            read-next-cell cells FUNCTIONS +
+            read-next-byte cells FUNCTIONS +
             POSTPONE LITERAL POSTPONE @ POSTPONE EXECUTE
         ENDOF
         $20 OF \ local.get [lit] : -- v
-            read-next-cell
+            read-next-byte
             compile-load-local
         ENDOF
         $21 OF \ local.set [lit] : v --
-            read-next-cell
+            read-next-byte
             compile-store-local POSTPONE !
         ENDOF
         $22 OF \ local.tee [lit] : v --
             POSTPONE dup
-            read-next-cell
+            read-next-byte
             compile-store-local POSTPONE !
         ENDOF
         $36 OF \ i32.store : addr v --
@@ -266,11 +269,11 @@ CREATE FUNCTIONS 32 ALLOT
         ENDOF
         ( n ) ." unhandled instruction " hex. bye
     ENDCASE
-    cell +
+    char+
     ;
 
 : compile-instructions  ( a-addr -- )
-    dup dup @ cells + swap
+    dup dup @ chars + cell + swap
     cell +
     ( end start )
     BEGIN 
