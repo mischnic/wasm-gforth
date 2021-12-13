@@ -336,6 +336,7 @@ CREATE FUNCTIONS 32 ALLOT
         ENDOF
         $0b OF \ return
             \ TODO might need unloop/done
+            \ TODO distinguish endif/return/repeat/endblock
             POSTPONE EXIT
         ENDOF
         ( n ) ." unhandled instruction " hex. bye

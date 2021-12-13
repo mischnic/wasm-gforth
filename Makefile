@@ -1,3 +1,5 @@
+TESTS=test/add.wasm test/bare.wasm test/fib.wasm test/hello_world_rs.wasm test/hello_world.wasm test/if.wasm test/if-branch.wasm test/if-branch-nested.wasm test/locals.wasm test/memory.wasm test/overflow.wasm
+
 .PHONY: all clean tests
 
 all: tests
@@ -8,7 +10,7 @@ clean:
 make test: tests
 	./test.sh
 
-tests: test/add.wasm test/bare.wasm test/locals.wasm test/hello_world.wasm test/hello_world_rs.wasm test/if.wasm test/if-nested.wasm test/memory.wasm test/overflow.wasm
+tests: $(TESTS)
 
 %.wasm: %.wat
 	wat2wasm -o $@ $<
