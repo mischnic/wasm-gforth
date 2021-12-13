@@ -1,10 +1,7 @@
-: wasi_unstable.proc_exit
-    (bye) ;
-
 \ ------------------ Parser
 
 0 Value fd-in
-: open-input ( addr u -- ) r/o open-file throw to fd-in ;
+: open-input ( c-addr u -- ) r/o open-file throw to fd-in ;
 : close-input ( -- ) fd-in close-file throw ;
 : next-byte ( -- n )
     fd-in key-file
@@ -14,10 +11,14 @@
         next-byte drop
     LOOP
     ;    
-: read-bytes-packed ( addr n -- )
-    fd-in read-line throw 2drop
+: read-bytes-packed ( c-addr n -- )
+    \ read-line sometimes corrups the last byte?
+    \ fd-in read-line throw 2drop
+    over + swap +DO
+        next-byte i !
+    LOOP
     ;    
-: read-bytes ( addr n -- )
+: read-bytes ( a-addr n -- )
     cells over + swap +DO
         next-byte i !
     cell +LOOP
@@ -32,8 +33,26 @@ CREATE FN-INFOS 32 CELLS ALLOT \ fid -> pointer to [nlocals nbytes ...code] OR [
 0 Value MEMORY-PTR
 -1 VALUE START-FN
 
-: index-to-fid 
+: index-to-fid  ( n -- n )
     COUNT-FN-IMPORTED + ;
+
+: ptr-to-real-addr ( ptr -- c-addr )
+    MEMORY-PTR +
+    ;
+
+: wasi_unstable.proc_exit ( n -- )
+    (bye) ;
+
+: wasi_unstable.fd_write { fd ptr n addr-nwritten -- nwritten }
+    fd 1 <> IF ." fd_write: unsupported fd" bye ENDIF
+    n 0 ?DO
+        ptr ptr-to-real-addr
+        dup ul@ ptr-to-real-addr \ c-addr
+        swap 4 + ul@ \ u
+        type
+    LOOP
+    0
+    ;
 
 : parse-section-noop
     next-byte skip-bytes
@@ -58,24 +77,30 @@ CREATE IMPORT-READ-BUFFER 128 ALLOT
     next-byte \ number of imports
     dup TO COUNT-FN-IMPORTED
     0 ?DO
-        next-byte dup 
-        IMPORT-READ-BUFFER swap read-bytes-packed
+        next-byte dup  IMPORT-READ-BUFFER swap read-bytes-packed
         IMPORT-READ-BUFFER swap
-        s" wasi_unstable"
-        compare invert
-        next-byte dup 
-        IMPORT-READ-BUFFER swap read-bytes-packed
-        IMPORT-READ-BUFFER swap
-        s" proc_exit"
-        compare invert
-        and
-        IF
-            3 CELLS ALLOCATE throw
-            dup FN-INFOS i cells + !
-            0 over !
-            0 over cell+ !
-            ['] wasi_unstable.proc_exit swap 2 cells + !
-        ENDIF
+        s" wasi_unstable" compare
+        IF ." import from unknown module" bye ENDIF
+
+        3 CELLS ALLOCATE throw
+        dup FN-INFOS i cells + !
+        0 over !
+        0 over cell+ !
+        2 cells +
+        CASE
+            next-byte dup  IMPORT-READ-BUFFER swap read-bytes-packed
+            IMPORT-READ-BUFFER swap
+            2dup s" proc_exit" compare invert ?OF
+                2drop
+                ['] wasi_unstable.proc_exit
+            ENDOF
+            2dup s" fd_write" compare invert ?OF
+                2drop
+                ['] wasi_unstable.fd_write
+            ENDOF
+            ." unknown import name" bye
+        ENDCASE
+        swap !
         2 skip-bytes \ TODO other import types
     LOOP
     ;
@@ -124,6 +149,19 @@ CREATE IMPORT-READ-BUFFER 128 ALLOT
     LOOP
     ;
 
+: parse-section-data
+    1 skip-bytes
+    next-byte \ number of segments
+    0 ?DO
+        1 skip-bytes \ type TODO there could be more, assume `00`
+        1 skip-bytes next-byte 1 skip-bytes \ offset TODO interpret instead of assuming `i32.const X end`
+        ptr-to-real-addr
+        next-byte ( target length )
+        read-bytes-packed
+    LOOP
+    ;
+
+
 CREATE SECTION-HANDLERS
     ( 0 ) ' noop ,
     ( 1 ) ' parse-section-type ,
@@ -136,7 +174,7 @@ CREATE SECTION-HANDLERS
     ( 8 ) ' parse-section-start ,
     ( 9 ) ' parse-section-noop ,
     ( 10 ) ' parse-section-code ,
-    ( 11 ) ' noop ,
+    ( 11 ) ' parse-section-data ,
 
 : parse-wasm 
     8 skip-bytes
@@ -180,6 +218,9 @@ CREATE FUNCTIONS 32 ALLOT
 : compile-instruction ( ptrNext1 -- ptrNext2 )
     dup @
     CASE
+        $1A OF \ drop : v --
+            POSTPONE drop
+        ENDOF
         $41 OF \ i32.const [lit] : -- lit
             read-next-cell
             POSTPONE LITERAL
