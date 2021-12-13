@@ -84,9 +84,9 @@ CREATE IMPORT-READ-BUFFER 128 ALLOT
     1 skip-bytes
     next-byte 1 = IF
         next-byte 0 = IF 
-            next-byte cells \ TODO cells or bytes?
+            next-byte
             dup TO MEMORY-SIZE
-            allocate throw TO MEMORY-PTR \ TODO fill with 0?
+            allocate throw TO MEMORY-PTR \ TODO fill with 0
         ENDIF
     ENDIF
     ;
@@ -162,50 +162,68 @@ CREATE FUNCTIONS 32 ALLOT
     POSTPONE [ POSTPONE laddr# CELLS , \ not sure why ] causes an error here, works anyway
  ;
 
+: read-next-cell 
+    cell+ dup @
+;
+
+: compile-apply-memarg ( ptr -- ptr )
+    cell+ \ ignore alignment
+    read-next-cell \ offset
+    POSTPONE LITERAL POSTPONE +
+    POSTPONE MEMORY-PTR POSTPONE +
+    ;
+
+: compile-truncate-i32
+    POSTPONE $ffffffff POSTPONE AND
+    ;
+
 : compile-instruction ( ptrNext1 -- ptrNext2 )
     dup @
     CASE
         $41 OF \ i32.const [lit] : -- lit
-            cell + dup @
+            read-next-cell
             POSTPONE LITERAL
         ENDOF
         $6a OF \ i32.add : a b -- c
-            POSTPONE + \ TODO POSTPONE $ffffffff POSTPONE AND
+            POSTPONE + \ TODO compile-truncate-i32
         ENDOF
         $6b OF \ i32.sub : a b -- c
-            POSTPONE - \ TODO POSTPONE $ffffffff POSTPONE AND
+            POSTPONE - \ TODO compile-truncate-i32
         ENDOF
         $46 OF \ i32.eq : a b -- c
             POSTPONE = POSTPONE 1 POSTPONE AND
         ENDOF
         $10 OF \ call [idx] : --
-            cell + dup @ cells FUNCTIONS +
+            read-next-cell cells FUNCTIONS +
             POSTPONE LITERAL POSTPONE @ POSTPONE EXECUTE
         ENDOF
         $20 OF \ local.get [lit] : -- v
-            cell + dup @
+            read-next-cell
             compile-load-local
         ENDOF
         $21 OF \ local.set [lit] : v --
-            cell + dup @
+            read-next-cell
             compile-store-local POSTPONE !
         ENDOF
         $22 OF \ local.tee [lit] : v --
             POSTPONE dup
-            cell + dup @
+            read-next-cell
             compile-store-local POSTPONE !
         ENDOF
-        \ $36 OF \ i32.store : addr v --
-            \ l!
-        \ ENDOF
-        \ $28 OF \ i32.load : addr -- v
-            \ ul@
-        \ ENDOF
+        $36 OF \ i32.store : addr v --
+            POSTPONE swap
+            compile-apply-memarg
+            POSTPONE l!
+        ENDOF
+        $28 OF \ i32.load : addr -- v
+            compile-apply-memarg
+            POSTPONE ul@
+        ENDOF
         $0b OF \ return
             \ TODO might need unloop/done
             POSTPONE EXIT
         ENDOF
-        ( n ) ." unhandled " . ( n )
+        ( n ) ." unhandled " hex. ( n )
     ENDCASE
     cell +
     ;

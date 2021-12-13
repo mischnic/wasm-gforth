@@ -5,7 +5,8 @@
   (export "memory" (memory 0))
 
   (func $main
-    (call $proc_exit (i32.const 7))
+    i32.const 7
+    call $proc_exit
   )
 
   (start $main)
