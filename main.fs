@@ -200,29 +200,29 @@ CREATE FUNCTIONS 32 ALLOT
     POSTPONE [ POSTPONE laddr# CELLS , \ not sure why ] causes an error here, works anyway
  ;
 
-: read-next-byte ( c-addr -- c-addr n )
-    char+ dup c@
+: consume-byte ( c-addr -- c-addr n )
+    dup char+ swap c@
 ;
 
-: compile-apply-memarg ( ptr -- ptr )
+: compile-apply-memarg ( c-addr -- ptr )
     char+ \ ignore alignment
-    read-next-byte \ offset
+    consume-byte \ offset
     POSTPONE LITERAL POSTPONE +
     POSTPONE MEMORY-PTR POSTPONE +
     ;
 
-: compile-truncate-i32
+: compile-truncate-i32 ( -- )
     POSTPONE $ffffffff POSTPONE AND
     ;
 
-: compile-instruction ( ptrNext1 -- ptrNext2 )
-    dup c@
+: compile-instruction ( c-addr -- c-addr )
+    consume-byte
     CASE
         $1A OF \ drop : v --
             POSTPONE drop
         ENDOF
         $41 OF \ i32.const [lit] : -- lit
-            read-next-byte
+            consume-byte
             \ .s cr
             \ read-leb128
             \ .s cr
@@ -238,20 +238,20 @@ CREATE FUNCTIONS 32 ALLOT
             POSTPONE = POSTPONE 1 POSTPONE AND
         ENDOF
         $10 OF \ call [idx] : --
-            read-next-byte cells FUNCTIONS +
+            consume-byte cells FUNCTIONS +
             POSTPONE LITERAL POSTPONE @ POSTPONE EXECUTE
         ENDOF
         $20 OF \ local.get [lit] : -- v
-            read-next-byte
+            consume-byte
             compile-load-local
         ENDOF
         $21 OF \ local.set [lit] : v --
-            read-next-byte
+            consume-byte
             compile-store-local POSTPONE !
         ENDOF
         $22 OF \ local.tee [lit] : v --
             POSTPONE dup
-            read-next-byte
+            consume-byte
             compile-store-local POSTPONE !
         ENDOF
         $36 OF \ i32.store : addr v --
@@ -269,7 +269,6 @@ CREATE FUNCTIONS 32 ALLOT
         ENDOF
         ( n ) ." unhandled instruction " hex. bye
     ENDCASE
-    char+
     ;
 
 : compile-instructions  ( a-addr -- )
