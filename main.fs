@@ -276,8 +276,8 @@ CREATE FUNCTIONS 32 ALLOT
     POSTPONE MEMORY-PTR POSTPONE +
     ;
 
-: compile-truncate-i32 ( -- )
-    POSTPONE $ffffffff POSTPONE AND
+: truncate-i32 ( n -- n )
+    $ffffffff AND
     ;
 
 : compile-instruction ( c-addr -- c-addr )
@@ -291,10 +291,19 @@ CREATE FUNCTIONS 32 ALLOT
             POSTPONE LITERAL
         ENDOF
         $6a OF \ i32.add : a b -- c
-            POSTPONE + \ TODO compile-truncate-i32
+            POSTPONE + POSTPONE truncate-i32
         ENDOF
         $6b OF \ i32.sub : a b -- c
-            POSTPONE - \ TODO compile-truncate-i32
+            POSTPONE - POSTPONE truncate-i32
+        ENDOF
+        $6c OF \ i32.mul : a b -- c
+            POSTPONE * POSTPONE truncate-i32
+        ENDOF
+        $74 OF \ i32.shl : a n -- b
+            POSTPONE lshift POSTPONE truncate-i32
+        ENDOF
+        $76 OF \ i32.shr_u : a n -- b
+            POSTPONE rshift POSTPONE truncate-i32
         ENDOF
         $46 OF \ i32.eq : a b -- c
             POSTPONE = POSTPONE 1 POSTPONE AND
