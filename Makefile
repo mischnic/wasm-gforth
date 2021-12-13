@@ -5,6 +5,9 @@ all: tests
 clean: 
 	rm test/*.wasm
 
+make test: tests
+	./test.sh
+
 tests: test/add.wasm test/bare.wasm test/locals.wasm test/hello_world.wasm test/hello_world_rs.wasm test/if.wasm test/if-nested.wasm test/memory.wasm
 
 %.wasm: %.wat
