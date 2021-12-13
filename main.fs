@@ -264,12 +264,12 @@ CREATE FUNCTIONS 32 ALLOT
             \ TODO might need unloop/done
             POSTPONE EXIT
         ENDOF
-        ( n ) ." unhandled " hex. ( n )
+        ( n ) ." unhandled instruction " hex. bye
     ENDCASE
     cell +
     ;
 
-: compile-instructions  ( arr -- )
+: compile-instructions  ( a-addr -- )
     dup dup @ cells + swap
     cell +
     ( end start )
@@ -297,17 +297,38 @@ CREATE FUNCTIONS 32 ALLOT
     LOOP
     ;
 
-: compile-function  ( nparams arr -- )
+: compile-function  ( nparams a-addr -- )
     dup @
     rot swap
-    ( arr nparams nlocals )
+    ( a-addr nparams nlocals )
     2dup compile-function-prelude
     rot cell+
     compile-instructions
     compile-function-postlude 
     ; IMMEDIATE
 
+
+: create-function ( nparams a-addr -- xt )
+    \ use return stack to smuggle data around the stack elements pushed by :noname
+    >r >r
+    :noname r> r> POSTPONE compile-function POSTPONE ;
+    ;
+
 \ ------------------ Initialization
+
+
+\ CREATE CODE-temporary
+\     0 , \ 0 local
+\     6 , \ 11 bytes code
+\     $20 , $01 , \ local.get 1
+\     $41 , $00 , \ i32.const 0
+\     $36 , $02 , $00 , \ i32.store align=2 offset=0
+\     $0b , \ return
+\ : temporary [
+\     2 CODE-temporary compile-function
+\ ] ;
+\ see temporary cr
+\ bye
 
 
 \ CREATE CODE-temporary
@@ -328,7 +349,7 @@ CREATE FUNCTIONS 32 ALLOT
 \ 3 11 temporary .s  \ (3 + 11) + (3 + 11)
 \ bye
 
-: get-arg ( -- addr u )
+: get-arg ( -- a-addr u )
     next-arg
     dup 0 = IF 
         ." You need to specify a wasm file to run"
@@ -341,52 +362,26 @@ parse-wasm
 close-input
 
 \ cr cr
-\ FN-INFOS @
-\ dup @ .
-\ dup 1 cells + @ .
-\ dup 2 cells + @ .
-\ drop
-
-\ cr cr
 \ FN-INFOS cell+ @
 \ dup @ .
 \ dup 1 cells + @ .
 \ dup 2 cells + @ .
 \ dup 3 cells + @ .
 \ drop
-
-\ cr
-\ TYPES 0 cells + 2@ . .
-\ TYPES 2 cells + 2@ . .
-
-\ cr
-\ ." memory size " MEMORY-SIZE . cr
-\ ." start " START-FN .
-
 \ bye
 
-
-: create-function ( nparams arr -- xt )
-    \ use return stack to smuggle data around the stack elements pushed by :noname
-    >r >r
-    :noname r> r> POSTPONE compile-function POSTPONE ;
-    ;
-
 : compile-functions
-    \ 4 1 ?DO
     COUNT-FN 0 ?DO
         FN-INFOS i CELLS + @ \ pointer to [nlocals nbytes ...code] OR [0 0 (ptr to host function)]
         dup @ \ nlocals
         over cell+ @ \ nbytes
-        + 0 = IF
-            \ host function
+        + 0 = IF \ host function
             2 cells + @
             \ i . dup xt-see cr
             FUNCTIONS i CELLS + !
-        ELSE
-            \ compile
-            FN-TYPES i CELLS + @ ( arr tid )
-            2 * CELLS cell+ TYPES + @ ( arr nparams )
+        ELSE \ compile
+            FN-TYPES i CELLS + @ ( a-addr tid )
+            2 * CELLS cell+ TYPES + @ ( a-addr nparams )
             swap
             create-function
             \ i . dup xt-see cr
@@ -396,30 +391,9 @@ close-input
 ;
 
 compile-functions
-
-\ :noname [ 
-\     CODES 0 cells + @
-\     compile-function
-\ ] ; 1 CELLS FUNCTIONS + !
-\ :noname [
-\     CODES 1 cells + @
-\     compile-function
-\ ] ; 2 CELLS FUNCTIONS + !
-\ :noname [
-\     CODES 2 cells + @
-\     compile-function
-\ ] ; 3 CELLS FUNCTIONS + !
-\ :noname [
-\     CODES 3 cells + @
-\     compile-function
-\ ] ; 4 CELLS FUNCTIONS + !
-
-
 FUNCTIONS START-FN CELLS + @ EXECUTE
-\ FUNCTIONS 0 CELLS + @ EXECUTE
 
 \ FUNCTIONS 0 CELLS + @ xt-see
-\ FUNCTIONS 1 CELLS + @ xt-see
 \ .s cr
 
 bye
