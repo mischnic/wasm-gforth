@@ -176,7 +176,8 @@ CREATE IMPORT-READ-BUFFER 128 ALLOT
         next-byte 0 = IF 
             next-byte
             dup TO MEMORY-SIZE
-            allocate throw TO MEMORY-PTR \ TODO fill with 0
+            allocate throw TO MEMORY-PTR
+            MEMORY-PTR MEMORY-SIZE erase \ TODO use chars?
         ENDIF
     ENDIF
     ;
