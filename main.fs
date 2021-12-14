@@ -140,7 +140,7 @@ CREATE FN-INFOS 32 CELLS ALLOT \ fid -> pointer to [nlocals nbytes ...packed-cod
 CREATE IMPORT-READ-BUFFER 128 ALLOT
 : parse-section-imports
     1 skip-bytes
-    next-byte \ number of imports
+    next-byte
     dup TO COUNT-FN-IMPORTED
     0 ?DO
         next-byte dup  IMPORT-READ-BUFFER swap read-bytes-packed
@@ -178,7 +178,7 @@ CREATE IMPORT-READ-BUFFER 128 ALLOT
             next-byte
             dup TO MEMORY-SIZE
             allocate throw TO MEMORY-PTR
-            MEMORY-PTR MEMORY-SIZE erase \ TODO use chars?
+            MEMORY-PTR MEMORY-SIZE erase \ TODO use chars ?
         ENDIF
     ENDIF
     ;
@@ -204,7 +204,7 @@ CREATE IMPORT-READ-BUFFER 128 ALLOT
     0 ?DO
         next-byte 1- \ bytes of code
         next-byte \ how many locals
-        dup 2 * skip-bytes \ skip descriptor TODO there might be more possibilites
+        dup 2 * skip-bytes \ skip locals descriptor TODO there might be more possibilites
         swap over 2 * -
         dup chars 2 cells + allocate throw
         dup FN-INFOS i index-to-fid cells + !
@@ -218,7 +218,7 @@ CREATE IMPORT-READ-BUFFER 128 ALLOT
 
 : parse-section-data
     1 skip-bytes
-    next-byte \ number of segments
+    next-byte
     0 ?DO
         1 skip-bytes \ type TODO there could be more, assume `00`
         1 skip-bytes next-byte 1 skip-bytes \ offset TODO interpret instead of assuming `i32.const X end`
@@ -278,10 +278,6 @@ CREATE FUNCTIONS 32 ALLOT
     POSTPONE [ POSTPONE laddr# CELLS , \ not sure why ] causes an error here, works anyway
  ;
 
-: consume-byte ( c-addr -- c-addr n )
-    dup char+ swap c@
-;
-
 : compile-apply-memarg ( c-addr -- ptr )
     char+ \ ignore alignment
     consume-uleb128 \ offset
@@ -292,6 +288,10 @@ CREATE FUNCTIONS 32 ALLOT
 : truncate-i32 ( n -- n )
     $ffffffff AND
     ;
+
+: consume-byte ( c-addr -- c-addr n )
+    dup char+ swap c@
+;
 
 : compile-instruction ( c-addr -- c-addr )
     consume-byte
@@ -404,7 +404,7 @@ CREATE FUNCTIONS 32 ALLOT
 
 
 : create-function ( nparams a-addr -- xt )
-    \ use return stack to smuggle data around the stack elements pushed by :noname
+    \ use return stack to smuggle the params around the stack elements pushed by :noname
     >r >r
     :noname r> r> POSTPONE compile-function POSTPONE ;
     ;
@@ -447,7 +447,7 @@ CREATE FUNCTIONS 32 ALLOT
 : get-arg ( -- a-addr u )
     next-arg
     dup 0 = IF 
-        ." You need to specify a wasm file to run"
+        ." No wasm file specified"
         1 (bye)
     ENDIF
     ;
@@ -489,6 +489,5 @@ compile-functions
 FUNCTIONS START-FN CELLS + @ EXECUTE
 
 \ FUNCTIONS 0 CELLS + @ xt-see
-\ .s cr
 
 bye

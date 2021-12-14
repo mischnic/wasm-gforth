@@ -6,6 +6,7 @@ Features
 
 - branching & loops
 - miscellaneous instructions
+- interpret code for initial values and offsets in data sections and global sections
 
 Bugs
 
