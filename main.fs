@@ -96,6 +96,7 @@ CREATE FN-INFOS 32 CELLS ALLOT \ fid -> pointer to [nlocals nbytes ...packed-cod
 0 VALUE COUNT-FN-IMPORTED
 0 Value MEMORY-SIZE
 0 Value MEMORY-PTR
+0 Value GLOBALS-PTR
 -1 VALUE START-FN
 
 : index-to-fid  ( u -- u )
@@ -227,6 +228,17 @@ CREATE IMPORT-READ-BUFFER 128 ALLOT
     LOOP
     ;
 
+: parse-section-global
+    1 skip-bytes
+    next-byte
+    dup cells allocate throw TO GLOBALS-PTR
+    0 ?DO
+        1 skip-bytes \ TODO there could be more, assume `7f` = i32
+        1 skip-bytes \ ignore info about mutability
+        1 skip-bytes next-byte 1 skip-bytes \ initial value TODO interpret instead of assuming `i32.const X end`
+        i cells GLOBALS-PTR + !
+    LOOP
+    ;
 
 CREATE SECTION-HANDLERS
     ( 0 ) ' noop ,
@@ -235,7 +247,7 @@ CREATE SECTION-HANDLERS
     ( 3 ) ' parse-section-functions ,
     ( 4 ) ' parse-section-noop ,
     ( 5 ) ' parse-section-memory ,
-    ( 6 ) ' parse-section-noop ,
+    ( 6 ) ' parse-section-global ,
     ( 7 ) ' parse-section-noop ,
     ( 8 ) ' parse-section-start ,
     ( 9 ) ' parse-section-noop ,
@@ -274,7 +286,7 @@ CREATE FUNCTIONS 32 ALLOT
     char+ \ ignore alignment
     consume-uleb128 \ offset
     POSTPONE LITERAL POSTPONE +
-    POSTPONE MEMORY-PTR POSTPONE +
+    POSTPONE MEMORY-PTR POSTPONE + \ don't compile the value of MEMORY_PTR because it can change
     ;
 
 : truncate-i32 ( n -- n )
@@ -325,6 +337,14 @@ CREATE FUNCTIONS 32 ALLOT
             POSTPONE dup
             consume-uleb128
             compile-store-local POSTPONE !
+        ENDOF
+        $23 OF \ global.get : [lit] -- v
+            consume-uleb128 cells GLOBALS-PTR + POSTPONE LITERAL \ GLOBALS-PTR is constant
+            POSTPONE @
+        ENDOF
+        $24 OF \ global.set : [lit] v --
+            consume-uleb128 cells GLOBALS-PTR + POSTPONE LITERAL \ GLOBALS-PTR is constant
+            POSTPONE !
         ENDOF
         $36 OF \ i32.store : addr v --
             POSTPONE swap
