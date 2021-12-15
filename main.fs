@@ -358,7 +358,7 @@ CREATE FUNCTIONS 32 ALLOT
         $0b OF \ return
             \ TODO might need unloop/done
             \ TODO distinguish endif/return/repeat/endblock
-            POSTPONE EXIT
+            \ TODO regardless of early or regular exit, the locals need to be popped
         ENDOF
         ( n ) ." unhandled instruction " hex. bye
     ENDCASE
@@ -413,14 +413,14 @@ CREATE FUNCTIONS 32 ALLOT
 
 
 \ CREATE CODE-temporary
-\     0 , \ 0 local
-\     6 , \ 11 bytes code
-\     $20 , $01 , \ local.get 1
-\     $41 , $00 , \ i32.const 0
-\     $36 , $02 , $00 , \ i32.store align=2 offset=0
-\     $0b , \ return
+\     0 , \ 0 locals
+\     8 , \ 8 bytes code
+\     $20 c, $01 c, \ local.get 1
+\     $41 c, $00 c, \ i32.const 0
+\     $36 c, $02 c, $00 c, \ i32.store align=2 offset=0
+\     $0b c, \ return
 \ : temporary [
-\     2 CODE-temporary compile-function
+\     0 CODE-temporary compile-function
 \ ] ;
 \ see temporary cr
 \ bye
@@ -429,19 +429,19 @@ CREATE FUNCTIONS 32 ALLOT
 \ CREATE CODE-temporary
 \     1 , \ 1 local
 \     11 , \ 11 bytes code
-\     $20 , $01 , \ local.get 1
-\     $20 , $00 , \ local.get 0
-\     $6a , \ i32.add
-\     $22 , $02 , \ local.tee 2
-\     $20 , $02 , \ local.get 2
-\     $6a , \ i32.add
-\     $0b , \ return
+\     $20 c, $01 c, \ local.get 1
+\     $20 c, $00 c, \ local.get 0
+\     $6a c, \ i32.add
+\     $22 c, $02 c, \ local.tee 2
+\     $20 c, $02 c, \ local.get 2
+\     $6a c, \ i32.add
+\     $0b c, \ return
 \ : temporary [
 \     2 CODE-temporary compile-function
 \ ] ;
 \ see temporary cr
 \ cr
-\ 3 11 temporary .s  \ (3 + 11) + (3 + 11)
+\ 3 11 temporary .s  \ 11 3 + dup + = 28
 \ bye
 
 : get-arg ( -- a-addr u )
@@ -455,15 +455,6 @@ CREATE FUNCTIONS 32 ALLOT
 get-arg open-input
 parse-wasm
 close-input
-
-\ cr cr
-\ FN-INFOS cell+ @
-\ dup @ .
-\ dup 1 cells + @ .
-\ dup 2 cells + @ .
-\ dup 3 cells + @ .
-\ drop
-\ bye
 
 : compile-functions
     COUNT-FN 0 ?DO
