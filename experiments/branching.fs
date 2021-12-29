@@ -89,35 +89,82 @@
 \     ." c"
 \     ;
 
+: run-loop
+    ;
+
 : run-block
-    0 .
-    case \ block
-        1 .
-        false ?OF endof \ = br_if
-        3 .
-        false ?OF endof \ = br_if
-        5 .
-    0 endcase \ endblock
-    6 .
+    ." before 1" cr
+    \ block
+        ." a" cr
+        true if \ br_if
+        ." b" cr
+        ahead \ br
+        ." c" cr
+    then \ endblock (duplicate for each br?)
+    then
+    ." after 1" cr
     ;
 
-: run
-    \ 0 .
-    5
-    case \ loop
-        dup .
-        1-
-        dup 0> ?OF contof \ = br_if in loop
-        ." neg "
-        dup -2 > ?OF contof \ = br_if in loop
-    0 endcase \ endloop
-    drop
+: run-loop-loop
+    ." before 1" cr
+    begin \ loop
+        ." before 2" cr
+        begin \ loop
+            ." b2" cr
+            true [ 0 cs-pick ] until \ br_if 0
+            \ [ 1 cs-pick ] again \ br 1
+            ." c2" cr
+        [ cs-drop ] \ end (loop)
+        ." after 2" cr
+
+        [ 0 cs-pick ] again \ br 0
+    [ cs-drop ] \ end (loop)
+    ." after 1" cr
     ;
 
-see run cr
+: run-block-block
+    ." before 1" cr
+    \ block
+        ." before 2" cr
+        \ block
+            ." a2" cr
+            true if \ br_if 0
+            ." b2" cr
+            true if \ br_if 1
+            ." c2" cr
+            false if \ br_if 1
+            ." d2" cr
+        [ 2 cs-roll ] then \ end (block)
+        ." after 2" cr
+    [ 0 cs-roll ] then \ end (block)
+    [ 0 cs-roll ] then \ end (block)
+    ." after 1" cr
+    ;
 
-.s cr
-run cr
-.s cr
+
+: run-block-loop
+    ." before 1" cr
+    \ block
+        ." before 2" cr
+        begin \ loop
+            ." a2" cr
+            true [ 0 cs-pick ] until \ br_if 0
+            ." c2" cr
+            false if \ br_if 1
+            ." d2" cr
+        [ 1 cs-roll cs-drop ] \ end (loop)
+        ." after 2" cr
+    [ 0 cs-roll ] then \ end (block)
+    ." after 1" cr
+    ;
+
+\ CS-PICK       orig0/dest0 orig1/dest1 ... origu/destu u -- ... orig0/dest0
+\ CS-ROLL       destu/origu .. dest0/orig0 u -- .. dest0/orig0 destu/origu
+\ CS-DROP       dest --
+
+100 maxdepth-.s !
+\ .s cr
+run-block-loop cr
+\ .s cr
 
 bye
