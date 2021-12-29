@@ -55,6 +55,30 @@ CREATE FN-INFOS 32 CELLS ALLOT \ fid -> pointer to [nlocals nbytes ...packed-cod
     0
     ;
 
+: wasi_unstable.args_sizes_get { a-ptr-argc a-ptr-argv-total-length -- 0 }
+    argc @ 
+    dup a-ptr-argc ptr-to-real-addr l!
+    0 swap \ sum argc
+    0 +DO
+        i arg nip +
+    LOOP
+    a-ptr-argv-total-length ptr-to-real-addr l!
+    0
+    ;
+
+: wasi_unstable.args_get { a-ptr-argv a-ptr-argv-buf -- 0 }
+    0
+    argc @
+    0 +DO
+        i arg ( offset addr len )
+        dup -rot  ( offset len addr len )
+        fourth a-ptr-argv-buf + i 4 chars * a-ptr-argv ptr-to-real-addr + l!
+        fourth a-ptr-argv-buf + ptr-to-real-addr swap move
+        +
+    LOOP
+    drop 0
+    ;
+
 : parse-section-noop
     next-byte skip-bytes
     ;
@@ -99,6 +123,14 @@ CREATE IMPORT-READ-BUFFER 128 ALLOT
                 2drop
                 ['] wasi_unstable.fd_write
             ENDOF
+            2dup s" args_sizes_get" compare invert ?OF
+                2drop
+                ['] wasi_unstable.args_sizes_get
+            ENDOF
+            2dup s" args_get" compare invert ?OF
+                2drop
+                ['] wasi_unstable.args_get
+            ENDOF
             ." unknown import name" bye
         ENDCASE
         swap !
@@ -110,7 +142,7 @@ CREATE IMPORT-READ-BUFFER 128 ALLOT
     1 skip-bytes
     next-byte 1 = IF
         next-byte 0 = IF 
-            next-byte
+            next-byte \ TODO use uleb128
             dup TO MEMORY-SIZE
             allocate throw TO MEMORY-PTR
             MEMORY-PTR MEMORY-SIZE erase \ TODO use chars ?

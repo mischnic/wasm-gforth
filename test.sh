@@ -1,6 +1,10 @@
 #!/bin/bash
 for f in test/*.wasm; do
+    arguments=
     case $f in 
+        test/params.wasm) 
+            arguments="lm n"
+        ;;
         test/fac.wasm) continue ;;
         test/hello_world_rs.wasm) continue ;;
         test/if.wasm) continue ;;
@@ -9,9 +13,9 @@ for f in test/*.wasm; do
     esac
 
     echo ─────── $f ───────
-    refOut=$(wasmtime $f)
+    refOut=$(wasmtime $f $arguments)
     refExit=$?
-    runOut=$(gforth main.fs $f)
+    runOut=$(gforth main.fs $f $arguments)
     runExit=$?
     diff <(echo -n $refOut) <(echo -n $runOut)
     if [[ $refExit != $runExit  ]]; then

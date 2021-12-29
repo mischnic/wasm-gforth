@@ -90,7 +90,11 @@ CREATE FUNCTIONS 32 ALLOT
             compile-apply-memarg
             POSTPONE ul@
         ENDOF
-        $0b OF \ return
+        $2D OF \ i32.load8_u : addr -- v
+            compile-apply-memarg
+            POSTPONE c@
+        ENDOF
+        $0b OF \ end
             \ TODO might need unloop/done
             \ TODO distinguish endif/return/repeat/endblock
             \ TODO regardless of early or regular exit, the locals need to be popped

@@ -1,4 +1,6 @@
-TESTS=test/add.wasm test/bare.wasm test/global.wasm test/hello_world_rs.wasm test/hello_world.wasm test/if.wasm test/if-branch.wasm test/if-branch-nested.wasm test/locals.wasm test/memory.wasm test/overflow.wasm
+TESTS=test/add.wasm test/bare.wasm test/fac.wasm test/global.wasm test/hello_world_rs.wasm test/hello_world.wasm \
+	  test/if.wasm test/if-branch.wasm test/if-branch-nested.wasm test/locals.wasm test/memory.wasm test/overflow.wasm \
+	  test/params.wasm
 
 .PHONY: all clean tests
 
