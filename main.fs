@@ -146,6 +146,9 @@ CREATE FUNCTIONS 32 ALLOT
     \ use return stack to smuggle the params around the stack elements pushed by :noname
     >r >r
     :noname r> r> POSTPONE compile-function POSTPONE ;
+
+    \ "quotations" appear to be the indetended mechanism for this, but dynamically generating code doesn't work
+    \ [: [ POSTPONE . ] ;]
     ;
 
 \ ------------------ Initialization
