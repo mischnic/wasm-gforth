@@ -12,7 +12,11 @@ clean:
 make test: tests
 	./test.sh
 
-tests: $(TESTS)
+tests: $(TESTS) test/fac.opt.wasm
+
+
+test/fac.opt.wasm: test/fac.wasm
+	wasm-opt -O4 test/fac.wasm -o test/fac.opt.wasm
 
 %.wasm: %.wat
 	wat2wasm -o $@ $<
@@ -22,8 +26,8 @@ tests: $(TESTS)
 #     rustc $(CFLAGS) -c -o $@ $<
 
 %.wasm: %.c
-	/usr/local/opt/llvm/bin/clang --target=wasm32 -O3 \
-		-nostdlib -Wl,--no-entry -Wl,--export-all -o $@ $< 
+	/usr/local/opt/llvm/bin/clang --target=wasm32 -Oz \
+		-nostdlib -Wl,--export-all -o $@ $< 
 
 %.opt.wasm: %.wasm
 	wasm-opt -o $@ $< -Oz

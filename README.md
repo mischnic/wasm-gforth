@@ -22,7 +22,8 @@ Not implemented yet (in order of priority):
 
 Bugs:
 
-- doesn't use uleb128 for parsing memory section sizes (currently `(memory 128)` fails to parse)
+- fall back to `_start` function (WASI) if no start is defined
+- doesn't use uleb128 for parsing memory section sizes and global init (currently `(memory 128)` fails to parse)
 - is memory automatically resized if accessed outside of bounds?
 - can memory accesses can be unaligned?
 

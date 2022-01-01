@@ -6,6 +6,7 @@ for f in test/*.wasm; do
             arguments="lm n"
         ;;
         test/fac.wasm) continue ;;
+        test/fac.opt.wasm) continue ;;
         test/hello_world_rs.wasm) continue ;;
         test/if.wasm) continue ;;
         test/if-branch.wasm) continue ;;

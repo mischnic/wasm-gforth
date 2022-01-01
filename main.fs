@@ -195,6 +195,13 @@ get-arg open-input
 parse-wasm
 close-input
 
+:noname 
+    START-FN -1 = IF
+        ." No start function found"
+        1 (bye)
+    ENDIF
+; EXECUTE
+
 : compile-functions
     COUNT-FN 0 ?DO
         FN-INFOS i CELLS + @ \ pointer to [nlocals nbytes ...code] OR [0 0 (ptr to host function)]

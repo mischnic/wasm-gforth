@@ -102,7 +102,7 @@ CREATE IMPORT-READ-BUFFER 128 ALLOT
     next-byte
     dup TO COUNT-FN-IMPORTED
     0 ?DO
-        next-byte dup  IMPORT-READ-BUFFER swap read-bytes-packed
+        next-byte dup IMPORT-READ-BUFFER swap read-bytes-packed
         IMPORT-READ-BUFFER swap
         s" wasi_unstable" compare
         IF ." import from unknown module" bye ENDIF
@@ -226,7 +226,7 @@ CREATE SECTION-HANDLERS
     BEGIN
         next-byte dup -1 <>
     WHILE
-        \ dup .
+        \ dup . cr
         11 min
         CELLS SECTION-HANDLERS + @ EXECUTE
     REPEAT
