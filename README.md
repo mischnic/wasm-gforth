@@ -27,4 +27,4 @@ Bugs:
 - is memory automatically resized if accessed outside of bounds?
 - can memory accesses can be unaligned?
 
-Find and run the spec tests for MVP without newer extensions
+Find and run the spec tests for MVP without newer extensions (https://github.com/turbolent/w2c2/tree/e48a25a/tests)
