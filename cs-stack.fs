@@ -162,7 +162,7 @@
 ;
 
 \ Returns the index of the loop-begin with that index
-: cs-stack.get-index-loop-dest { index stack -- index }
+: cs-stack.find-index-loop-dest { index stack -- index }
     stack stack.size
     0
     ?DO
@@ -202,7 +202,7 @@
 \ \ dup stack.bot-addr hex . cr
 \ \ dup stack.top-addr hex . cr
 \ \ dup cs-stack.pop-index-loop-dest . cr
-\ 8 over cs-stack.get-index-loop-dest . cr
+\ 8 over cs-stack.find-index-loop-dest . cr
 \ 2 over cs-stack.pop-index-block-branches . cr
 \ 2 over cs-stack.pop-index-block-branches . cr
 \ 2 over cs-stack.pop-index-block-branches . cr
@@ -231,8 +231,30 @@
 
 : gen-end { type-stack cs-stack -- }
     type-stack stack.pop TYPE-BLOCK = IF
-        type-stack stack.size 1- cs-stack gen-endblock
+        type-stack stack.size cs-stack gen-endblock
     ELSE \ TYPE-LOOP
         cs-stack gen-endloop
+    ENDIF
+;
+
+: gen-br_if { offset type-stack cs-stack }
+    type-stack stack.size 1- offset - \ absolute index
+    offset type-stack stack.get TYPE-BLOCK = IF
+        cs-stack cs-stack.push-block-branch
+        postpone 0= postpone if
+    ELSE \ TYPE-LOOP
+        cs-stack cs-stack.find-index-loop-dest cs-pick
+        postpone 0= postpone until
+    ENDIF
+;
+
+: gen-br { offset type-stack cs-stack }
+    type-stack stack.size 1- offset - \ absolute index
+    offset type-stack stack.get TYPE-BLOCK = IF
+        cs-stack cs-stack.push-block-branch
+        postpone ahead
+    ELSE \ TYPE-LOOP
+        cs-stack cs-stack.find-index-loop-dest cs-pick
+        postpone again
     ENDIF
 ;

@@ -5,12 +5,10 @@ require ../cs-stack.fs
     TYPE-BLOCK type-stack stack.push \ block 1
         TYPE-BLOCK type-stack stack.push \ block 2       
             postpone dup postpone 0>
-            postpone 0= postpone if
-                type-stack stack.size 1- 0 - cs-stack cs-stack.push-block-branch \ br_if 0
+            0 type-stack cs-stack gen-br_if \ br_if 0
             1 postpone literal postpone .
             postpone dup postpone 0<
-            postpone 0= postpone if
-                type-stack stack.size 1- 1 - cs-stack cs-stack.push-block-branch \ br_if 1
+            1 type-stack cs-stack gen-br_if \ br_if 1
             -1 postpone literal postpone .
         type-stack cs-stack gen-end \ end 2
         postpone drop
@@ -30,8 +28,7 @@ require ../cs-stack.fs
             postpone 1-
             postpone dup postpone .
             postpone dup postpone 0<
-            type-stack stack.size 1- 0 - cs-stack cs-stack.get-index-loop-dest cs-pick
-                    postpone until  \ br 0, absolute: 1
+            0 type-stack cs-stack gen-br_if  \ br 0, absolute: 1
         type-stack cs-stack gen-end \ end 2
         postpone drop
     type-stack cs-stack gen-end \ end 1
