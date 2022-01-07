@@ -38,6 +38,22 @@ CREATE FUNCTIONS 32 ALLOT
             consume-leb128
             POSTPONE LITERAL
         ENDOF
+        $42 OF \ i64.const [lit] : -- lit
+            consume-leb128
+            POSTPONE LITERAL
+        ENDOF
+        $46 OF \ i32.eq : a b -- c
+            POSTPONE = POSTPONE 1 POSTPONE AND
+        ENDOF
+        $47 OF \ i32.ne : a b -- c
+            POSTPONE <> POSTPONE 1 POSTPONE AND
+        ENDOF
+        $51 OF \ i64.eq : a b -- c
+            POSTPONE = POSTPONE 1 POSTPONE AND
+        ENDOF
+        $52 OF \ i64.ne : a b -- c
+            POSTPONE <> POSTPONE 1 POSTPONE AND
+        ENDOF
         $6a OF \ i32.add : a b -- c
             POSTPONE + POSTPONE truncate-i32
         ENDOF
@@ -53,9 +69,16 @@ CREATE FUNCTIONS 32 ALLOT
         $76 OF \ i32.shr_u : a n -- b
             POSTPONE rshift POSTPONE truncate-i32
         ENDOF
-        $46 OF \ i32.eq : a b -- c
-            POSTPONE = POSTPONE 1 POSTPONE AND
+        $7C OF \ i64.add : a b -- c
+            POSTPONE +
         ENDOF
+        $7D OF \ i64.sub : a b -- c
+            POSTPONE -
+        ENDOF
+        $7E OF \ i64.mul : a b -- c
+            POSTPONE *
+        ENDOF
+
         $10 OF \ call [idx] : --
             consume-uleb128 cells FUNCTIONS +
             POSTPONE LITERAL POSTPONE @ POSTPONE EXECUTE
