@@ -13,7 +13,7 @@ for f in test/*.wasm; do
     echo ─────── $f ───────
     refOut=$(wasmtime $f $arguments)
     refExit=$?
-    runOut=$(gforth main.fs $f $arguments)
+    runOut=$(./wasm-gforth $f $arguments)
     runExit=$?
     diff <(echo -n $refOut) <(echo -n $runOut)
     if [[ $refExit != $runExit  ]]; then
