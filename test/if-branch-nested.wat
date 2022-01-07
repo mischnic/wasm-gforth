@@ -7,7 +7,7 @@
   (func $main
     block $outer
       block $inner
-        i32.const 0 i32.const 0 i32.eq
+        i32.const 1
         br_if $outer
         i32.const 22
         call $proc_exit

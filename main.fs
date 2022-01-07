@@ -1,5 +1,6 @@
 require leb128.fs
 require parser.fs
+require cs-stack.fs
 
 \ ------------------ Compiler
 
@@ -28,9 +29,40 @@ CREATE FUNCTIONS 32 ALLOT
     dup char+ swap c@
 ;
 
-: compile-instruction ( c-addr -- c-addr )
-    consume-byte
+: compile-instruction ( ..cs-items.. c-addr1 type-stack cs-stack -- ..cs-items.. c-addr2 )
+    { c-addr type-stack cs-stack }
+    c-addr consume-byte
     CASE
+        $02 OF \ block
+            consume-leb128 drop \ ignore blocktype
+            TYPE-BLOCK type-stack stack.push
+        ENDOF
+        $03 OF \ loop
+            consume-leb128 drop \ ignore blocktype
+            TO c-addr
+                postpone begin
+            c-addr
+            TYPE-LOOP type-stack stack.push 
+            type-stack stack.size 1- cs-stack cs-stack.push-loop-begin
+        ENDOF
+        $0b OF \ end : --
+            TO c-addr
+                type-stack cs-stack gen-end
+            c-addr
+        ENDOF
+        $0c OF \ br [lit] : --
+            consume-leb128 swap
+            TO c-addr
+                type-stack cs-stack gen-br
+            c-addr
+        ENDOF
+        $0D OF \ br_if [lit] : v --
+            consume-leb128 swap
+            TO c-addr
+                type-stack cs-stack gen-br_if
+            c-addr
+        ENDOF
+
         $1A OF \ drop : v --
             POSTPONE drop
         ENDOF
@@ -117,25 +149,24 @@ CREATE FUNCTIONS 32 ALLOT
             compile-apply-memarg
             POSTPONE c@
         ENDOF
-        $0b OF \ end
-            \ TODO might need unloop/done
-            \ TODO distinguish endif/return/repeat/endblock
-            \ TODO regardless of early or regular exit, the locals need to be popped
-        ENDOF
         ( n ) ." unhandled instruction " hex. bye
     ENDCASE
     ;
 
 : compile-instructions  ( a-addr -- )
-    dup dup @ chars + cell + swap
-    cell +
-    ( end start )
-    BEGIN 
+    dup dup @ chars + cell+ swap
+    cell+
+    stack.new
+    stack.new
+    { end pos type-stack cs-stack }
+    TYPE-BLOCK type-stack stack.push \ function is a block
+    BEGIN
+        pos type-stack cs-stack 
         compile-instruction
-        ( end nextpos )
-        2dup <=
+        TO pos
+        end pos <=
     UNTIL
-    drop drop
+    \ TODO function "end" is optional?
 ;
 
 : compile-function-prelude ( nparams nlocals -- )
@@ -178,6 +209,23 @@ CREATE FUNCTIONS 32 ALLOT
 
 
 \ CREATE CODE-temporary
+\     0 , \ 0 local
+\     21 , \ 6 bytes code
+\     \ $02 c, $40 c, \ block
+\         $02 c, $40 c, \ block
+\             $41 c, $00 c, \ i32.const
+\             $0d c, $01 c, \ br_if 0
+\             $41 c, $05 c, \ i32.const 5
+\             $0c c, $01 c, \ br 1
+\         $0b c, \ end
+\         $41 c, $04 c, \ i32.const 4
+\         $41 c, $01 c, \ i32.const
+\         $0d c, $00 c, \ br_if 0
+\         $41 c, $01 c, \ i32.const 1
+\         $6a c, \ i32.add
+\     \ $0b c, \ end
+\     $0b c, \ end
+\ CREATE CODE-temporary
 \     0 , \ 0 locals
 \     8 , \ 8 bytes code
 \     $20 c, $01 c, \ local.get 1
@@ -188,6 +236,7 @@ CREATE FUNCTIONS 32 ALLOT
 \     0 CODE-temporary compile-function
 \ ] ;
 \ see temporary cr
+\ temporary . cr
 \ bye
 
 
