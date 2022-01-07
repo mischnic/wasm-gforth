@@ -16,14 +16,13 @@ For now, the goal is to support the MVP feature set.
 
 Not implemented yet (in order of priority):
 
-- control flow
 - miscellaneous (arithmetic) instructions
-- interpret code for initial values and offsets in data sections and global sections
+- (interpret code for initial values and offsets in data sections and global sections)
 
 Bugs:
 
 - fall back to `_start` function (WASI) if no start is defined
-- doesn't use uleb128 for parsing memory section sizes and global init (currently `(memory 128)` fails to parse)
+- use uleb128 for parsing memory section sizes and global init (currently `(memory 128)` fails to parse)
 - is memory automatically resized if accessed outside of bounds?
 - can memory accesses can be unaligned?
 

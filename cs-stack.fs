@@ -118,11 +118,19 @@
 ;
 
 0 CONSTANT TYPE-BLOCK
-1 CONSTANT TYPE-LOOP
+1 CONSTANT TYPE-IFELSE
+2 CONSTANT TYPE-LOOP
+$8000000000000000 CONSTANT CS-STACK-IGNORE
+$4000000000000000 CONSTANT CS-STACK-LOOP-MASK
 
+: cs-stack.push-ignore ( stack -- )
+    CS-STACK-IGNORE ( only 1st bit is set )
+    swap
+    stack.push
+;
 : cs-stack.push-loop-begin ( index stack -- )
     swap
-    $4000000000000000 ( only topmost bit is set ) or
+    CS-STACK-LOOP-MASK ( only 2nd bit is set ) or
     swap
     stack.push
 ;
@@ -166,7 +174,7 @@
     stack stack.size
     0
     ?DO
-        i stack stack.get $4000000000000000 index or = IF
+        i stack stack.get CS-STACK-LOOP-MASK index or = IF
             i
             unloop
             exit
@@ -180,7 +188,21 @@
     dup stack.size
     0
     ?DO
-        i over stack.get $4000000000000000 and IF
+        i over stack.get CS-STACK-LOOP-MASK and IF
+            i swap stack.remove drop
+            i
+            unloop
+            exit
+        ENDIF
+    LOOP
+    -1
+;
+\ Returns the index of topmost ignore and removes it
+: cs-stack.pop-index-ignore ( stack -- index )
+    dup stack.size
+    0
+    ?DO
+        i over stack.get CS-STACK-IGNORE = IF
             i swap stack.remove drop
             i
             unloop
@@ -230,31 +252,31 @@
 ;
 
 : gen-end { type-stack cs-stack -- }
-    type-stack stack.pop TYPE-BLOCK = IF
-        type-stack stack.size cs-stack gen-endblock
-    ELSE \ TYPE-LOOP
+    type-stack stack.pop TYPE-LOOP = IF
         cs-stack gen-endloop
+    ELSE \ TYPE-BLOCK or TYPE-IFELSE
+        type-stack stack.size cs-stack gen-endblock
     ENDIF
 ;
 
 : gen-br_if { offset type-stack cs-stack }
     type-stack stack.size 1- offset - \ absolute index
-    offset type-stack stack.get TYPE-BLOCK = IF
-        cs-stack cs-stack.push-block-branch
-        postpone 0= postpone if
-    ELSE \ TYPE-LOOP
+    offset type-stack stack.get TYPE-LOOP = IF
         cs-stack cs-stack.find-index-loop-dest cs-pick
         postpone 0= postpone until
+    ELSE \ TYPE-BLOCK or TYPE-IFELSE
+        cs-stack cs-stack.push-block-branch
+        postpone 0= postpone if
     ENDIF
 ;
 
 : gen-br { offset type-stack cs-stack }
     type-stack stack.size 1- offset - \ absolute index
-    offset type-stack stack.get TYPE-BLOCK = IF
-        cs-stack cs-stack.push-block-branch
-        postpone ahead
-    ELSE \ TYPE-LOOP
+    offset type-stack stack.get TYPE-LOOP = IF
         cs-stack cs-stack.find-index-loop-dest cs-pick
         postpone again
+    ELSE \ TYPE-BLOCK or TYPE-IFELSE
+        cs-stack cs-stack.push-block-branch
+        postpone ahead
     ENDIF
 ;

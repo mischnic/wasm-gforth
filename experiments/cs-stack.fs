@@ -35,11 +35,31 @@ require ../cs-stack.fs
     type-stack cs-stack gen-end \ end 0
 ; immediate
 
+: gen-test2 { type-stack cs-stack -- }
+    TYPE-BLOCK type-stack stack.push \ fn
+    postpone 0>=
+    postpone if cs-stack cs-stack.push-ignore
+                TYPE-BLOCK type-stack stack.push \ block 1
+        10 postpone literal
+    type-stack cs-stack gen-end
+    cs-stack cs-stack.pop-index-ignore cs-roll
+    postpone ahead
+    1 cs-roll
+    postpone endif  cs-stack cs-stack.push-ignore
+                    TYPE-BLOCK type-stack stack.push \ block 1
+        20 postpone literal
+    type-stack cs-stack gen-end
+    cs-stack cs-stack.pop-index-ignore cs-roll postpone endif
+    postpone .
+    type-stack cs-stack gen-end \ end 0
+; immediate
+
 : test 
     [ stack.new ]
     [ stack.new ]
     \ [ 2dup ] gen-test0
-    [ 2dup ] gen-test1
+    \ [ 2dup ] gen-test1
+    [ 2dup ] gen-test2
     [ stack.destroy ]
     [ stack.destroy ]
     ;

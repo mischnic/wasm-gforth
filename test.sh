@@ -8,7 +8,6 @@ for f in test/*.wasm; do
         test/fac.wasm) continue ;;
         test/fac.opt.wasm) continue ;;
         test/hello_world_rs.wasm) continue ;;
-        test/if.wasm) continue ;;
     esac
 
     echo ─────── $f ───────

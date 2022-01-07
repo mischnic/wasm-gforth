@@ -45,8 +45,31 @@ CREATE FUNCTIONS 32 ALLOT
             TYPE-LOOP type-stack stack.push 
             type-stack stack.size 1- cs-stack cs-stack.push-loop-begin
         ENDOF
+        $04 OF \ if
+            consume-leb128 drop \ ignore blocktype
+            TO c-addr
+                postpone 0<>
+                postpone if
+            c-addr
+            cs-stack cs-stack.push-ignore
+            TYPE-IFELSE type-stack stack.push
+        ENDOF
+        $05 OF \ else
+            TO c-addr
+                type-stack cs-stack gen-end
+                cs-stack cs-stack.pop-index-ignore cs-roll
+                postpone ahead
+                1 cs-roll
+                postpone endif
+                cs-stack cs-stack.push-ignore
+                TYPE-IFELSE type-stack stack.push
+            c-addr
+        ENDOF
         $0b OF \ end : --
             TO c-addr
+                type-stack stack.head TYPE-IFELSE = IF
+                    cs-stack cs-stack.pop-index-ignore cs-roll postpone endif
+                ENDIF
                 type-stack cs-stack gen-end
             c-addr
         ENDOF
