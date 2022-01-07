@@ -12,11 +12,7 @@ clean:
 make test: tests
 	./test.sh
 
-tests: $(TESTS) test/fac.opt.wasm
-
-
-test/fac.opt.wasm: test/fac.wasm
-	wasm-opt -O4 test/fac.wasm -o test/fac.opt.wasm
+tests: $(TESTS)
 
 %.wasm: %.wat
 	wat2wasm -o $@ $<

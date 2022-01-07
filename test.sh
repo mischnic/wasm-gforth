@@ -1,4 +1,5 @@
 #!/bin/bash
+result=0
 for f in test/*.wasm; do
     arguments=
     case $f in 
@@ -6,7 +7,6 @@ for f in test/*.wasm; do
             arguments="lm n"
         ;;
         test/fac.wasm) continue ;;
-        test/fac.opt.wasm) continue ;;
         test/hello_world_rs.wasm) continue ;;
     esac
 
@@ -18,5 +18,8 @@ for f in test/*.wasm; do
     diff <(echo -n $refOut) <(echo -n $runOut)
     if [[ $refExit != $runExit  ]]; then
         echo "Exit code $runExit != $refExit"
+        result=1
     fi
 done
+
+exit $result

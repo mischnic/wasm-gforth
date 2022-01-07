@@ -33,6 +33,8 @@ CREATE FUNCTIONS 32 ALLOT
     { c-addr type-stack cs-stack }
     c-addr consume-byte
     CASE
+        $01 OF \ nop
+        ENDOF
         $02 OF \ block
             consume-leb128 drop \ ignore blocktype
             TYPE-BLOCK type-stack stack.push
@@ -85,6 +87,20 @@ CREATE FUNCTIONS 32 ALLOT
                 type-stack cs-stack gen-br_if
             c-addr
         ENDOF
+        \ $0D OF \ br_table
+        \ ENDOF
+        $0F OF \ return
+            TO c-addr
+                type-stack stack.size 1- 
+                type-stack cs-stack gen-br
+            c-addr
+        ENDOF
+        $10 OF \ call [idx] : --
+            consume-uleb128 cells FUNCTIONS +
+            POSTPONE LITERAL POSTPONE @ POSTPONE EXECUTE
+        ENDOF
+        \ $11 OF \ call_indirect
+        \ ENDOF
 
         $1A OF \ drop : v --
             POSTPONE drop
@@ -134,10 +150,6 @@ CREATE FUNCTIONS 32 ALLOT
             POSTPONE *
         ENDOF
 
-        $10 OF \ call [idx] : --
-            consume-uleb128 cells FUNCTIONS +
-            POSTPONE LITERAL POSTPONE @ POSTPONE EXECUTE
-        ENDOF
         $20 OF \ local.get [lit] : -- v
             consume-uleb128
             compile-load-local
