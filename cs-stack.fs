@@ -1,16 +1,22 @@
-\ stack = [ size capacity ...data ]
+\ stack = [ size capacity data-ptr ]
 : stack.new ( -- stack )
-    16 cells allocate throw
+    3 cells allocate throw
     0 over !
-    16 over cell+ !
+    4 over cell+ !
+    32 cells allocate throw over 2 cells + !
 ;
 : stack.destroy ( stack -- )
+    dup 2 cells + @ free throw
     free throw
     ;
-\ : cs-stack.resize ( cap stack -- )
-\     swap
-\     2dup cells swap resize
-\ ;
+: stack.resize ( cap stack -- )
+    2dup cell+ !
+    2 cells + dup @
+    rot cells
+    over 8 cells dump
+    resize throw
+    swap !
+;
 : stack.size ( stack -- u )
     @
     ;
@@ -19,12 +25,18 @@
     ;
 \ undefined behaviour for empty stacks
 : stack.top-addr ( stack -- a-addr )
-    dup @ 1+ cells +
+    dup 2 cells + @
+    swap @ 1- cells +
     ;
 : stack.push ( v stack -- )
     \ todo resize if needed
-    1 over +!
-    stack.top-addr
+    dup @ 1+
+    dup third !
+    over cell+ @ > IF
+        dup cell+ @ 32 +
+        over stack.resize
+    ENDIF
+    stack.top-addr 
     !
 ;
 : stack.get ( index-top stack -- v )
