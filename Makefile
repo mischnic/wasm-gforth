@@ -9,7 +9,7 @@ all: tests
 clean: 
 	rm -f test/*.wasm
 
-make test: tests
+test: tests
 	./test.sh
 
 tests: $(TESTS)
