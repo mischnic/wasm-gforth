@@ -24,7 +24,10 @@ becomes
 
 This is done for every function (which also become a Forth colon-definitions, which have the same semantics regarding parameters and the return value). Locals are handled via Gforth's locals extension, and control flow is modelled using Forth's control flow stack (the regular `if`/`end`/`until` plus `cs-roll` and `cs-drop`) which eventually result in Assembly-like jumps.
 
-So there is no optimization, but the runtime speed should be similar to an equivalent hand-written Forth program.
+| ![translation1](./translation1.png) | ![translation2](./translation2.png) |
+| ----------------------------------- | ----------------------------------- |
+
+So there are no optimizations, but the runtime speed should be similar to an equivalent hand-written Forth program.
 
 ## Usage
 
@@ -38,7 +41,6 @@ Not implemented (in order of priority):
 
 - miscellaneous simple (arithmetic) instructions
 - `br_table`
-- (interpret code for initial values and offsets in data sections and global sections)
 
 Bugs:
 
